@@ -1,0 +1,53 @@
+# DREME 4.12.0
+#     command: dreme -oc meme_out/T2D_tab.tab -p ./fasta/T2D_tab.tab.fasta -n ./fasta/T2D_tab.tab_back.fasta
+#   positives: 257 from ./fasta/T2D_tab.tab.fasta (Mon Sep 16 13:36:20 EEST 2019)
+#   negatives: 5000 from ./fasta/T2D_tab.tab_back.fasta (Mon Sep 16 13:36:20 EEST 2019)
+#        host: medsrv-tom.uta.fi
+#        when: Mon Sep 16 13:36:21 EEST 2019
+
+MEME version 4.12.0
+
+ALPHABET "DNA" DNA-LIKE
+A "Adenine" CC0000 ~ T "Thymine" 008000
+C "Cytosine" 0000CC ~ G "Guanine" FFB300
+N "Any base" = ACGT
+X = ACGT
+. = ACGT
+V "Not T" = ACG
+H "Not G" = ACT
+D "Not C" = AGT
+B "Not A" = CGT
+M "Amino" = AC
+R "Purine" = AG
+W "Weak" = AT
+S "Strong" = CG
+Y "Pyrimidine" = CT
+K "Keto" = GT
+U = T
+END ALPHABET
+
+strands: + -
+
+Background letter frequencies (from dataset):
+A 0.209 C 0.291 G 0.293 T 0.207
+
+
+MOTIF TTMAW DREME-1
+
+#             Word    RC Word        Pos        Neg    P-value    E-value
+# BEST       TTMAW      WTKAA         74        739   1.8e-008   2.7e-004
+#            TTAAT      ATTAA         19        152   6.1e-004   9.0e+000
+#            TTAAA      TTTAA         24        229   1.2e-003   1.8e+001
+#            TTCAT      ATGAA         27        275   1.5e-003   2.2e+001
+#            TTCAA      TTGAA         21        220   6.7e-003   9.9e+001
+
+letter-probability matrix: alength= 4 w= 5 nsites= 89 E= 2.7e-004
+0.000000 0.000000 0.000000 1.000000
+0.000000 0.000000 0.000000 1.000000
+0.460674 0.539326 0.000000 0.000000
+1.000000 0.000000 0.000000 0.000000
+0.483146 0.000000 0.000000 0.516854
+
+
+# Stopping reason: E-value threshold exceeded
+#    Running time: 24.30 seconds
