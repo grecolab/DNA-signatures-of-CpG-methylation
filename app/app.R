@@ -417,6 +417,10 @@ server <- function(input, output, session) {
       par(mar = c(15, 5, 2, 2))
       plot(col_dend)
       colored_bars(as.character(c("gray", "green", "red")[dir]), col_dend)
+      legend("topleft",     
+             legend = c("neutral","hypo","hyper"),
+             fill = c("gray", "green","red")
+      )
     }
     #add methylation info as a colored bar
   })
@@ -466,9 +470,9 @@ server <- function(input, output, session) {
       dendrogram = "both",
       density.info = "none",
       trace = "none",
-      colsep = 1:(nrow(mat) + 1),
+      colsep = 0:nrow(mat) ,
       sepwidth = c(0.001, 0.001),
-      rowsep = 1:(ncol(mat) + 1),
+      rowsep = 0:ncol(mat),
       sepcolor = "black",
       col = c("white", "gray", "green","red"),
       cexCol = 0.9,
