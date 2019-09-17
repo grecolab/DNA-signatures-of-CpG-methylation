@@ -1,2 +1,0 @@
-type motif length positives tot_pos negatives tot_neg pos_ratio neg_ratio pvalue evalue
-T1D.tab TAGACGCR 8 4 105 1 5000 0.0380952380952381 2e-04 8.3e-07 0.0068
