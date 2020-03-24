@@ -25,9 +25,9 @@ get_meth_sign <- function(mot_cpg,idm_type) {
   idm_type$hyper <- NA
   idm_type$hypo  <- NA
   #define hyper- of hypo- methylation status
-  if ("status" %in% colnames(idm_type)){
-    idm_type$hyper <-  (idm_type$status == "hyper")
-    idm_type$hypo <-  (idm_type$status == "hypo")
+  if ("Status" %in% colnames(idm_type)){
+    idm_type$hyper <-  (idm_type$Status == "hyper")
+    idm_type$hypo <-  (idm_type$Status == "hypo")
   } else {
     idm_type$hyper <-  NA
     idm_type$hypo <- NA
@@ -83,25 +83,28 @@ get_mot_sum <- function(iDMCs, meme_out) {
     type_cpg_of_int <- iDMCs[[type]]
     
     types_tab <- read.table(paste0(meme_out,"/",type,"/summary.txt"), header = T,stringsAsFactors = F)
-    types_tab <- cbind(types_tab, 
-                    do.call(rbind, 
-                            apply(types_tab, 1 ,
-                                  function(x,idmcs){
-                                    motif_file <- paste0(meme_out,"/",x["type"],"/",x["motif"],".txt")
-                                    mot_cpg = read.table(motif_file , quote="\"", comment.char="",header = T, stringsAsFactors=FALSE)
-                                    get_meth_sign(mot_cpg,idmcs)
-                                  }, 
-                                  idmcs=type_cpg_of_int)
-                    )
-    )
-    types_mot <- dplyr::bind_rows(types_mot, types_tab)
+    if (nrow(types_tab) > 0){
+      types_tab <- cbind(types_tab, 
+                      do.call(rbind, 
+                              apply(types_tab, 1 ,
+                                    function(x,idmcs){
+                                      motif_file <- paste0(meme_out,"/",x["type"],"/",x["motif"],".txt")
+                                      mot_cpg = read.table(motif_file , quote="\"", comment.char="",header = T, stringsAsFactors=FALSE)
+                                      get_meth_sign(mot_cpg,idmcs)
+                                    }, 
+                                    idmcs=type_cpg_of_int)
+                      )
+      )
+      types_mot <- dplyr::bind_rows(types_mot, types_tab)
+    }
   }
   
   types_mot
 }
 
 
-assign_main_dir <- function(types_mot, unbalance_tresh = 0.7){
+assign_main_dir <- function(types_mot, unbalance_tresh, evalue_tresh, 
+                            pvalue_tresh, fisher_thesh){
   
   #code methylation status of the support set as hyper if > unbalance_tresh % are hyper, 
   # hypo if > unbalance_tresh % are hypo, unbal otherwise
@@ -113,6 +116,8 @@ assign_main_dir <- function(types_mot, unbalance_tresh = 0.7){
   if(any(types_mot$n_hypo/(types_mot$recovered_pos) > unbalance_tresh)){
     types_mot[types_mot$n_hypo/(types_mot$recovered_pos) > unbalance_tresh, ]$main_dir <- "hypo"  
   }
+  
+  types_mot <- types_mot %>% dplyr::filter(evalue <= evalue_tresh, fisher.p <= fisher_thesh, pvalue <= pvalue_tresh)
   
   types_mot
 }
@@ -178,30 +183,34 @@ annotate_tfbs <- function(types,types_mot, meme_out_fold, meme_bin_path, motif_d
     #print(tomtom_comm)
     system(tomtom_comm)
     
-    res <- read.table(paste0(meme_out_fold,"/",type_can,"/tomtom/tomtom.tsv"),
-    #res <- read.table(paste0(meme_out_fold,"/",type_can,"/tomtom/tomtom.txt"),
+    #res <- read.table(paste0(meme_out_fold,"/",type_can,"/tomtom/tomtom.tsv"),
+    res <- tryCatch(read.table(paste0(meme_out_fold,"/",type_can,"/tomtom/tomtom.txt"),
                       stringsAsFactors = F,
-                      comment.char = "#")
-    colnames(res) <- c("Query_ID",	"Target_ID"	,"Optimal_offset",	"p.value"	,
-                       "E.value",	"q.value",	"Overlap"	,"Query_consensus"	,
-                       "Target_consensus",	"Orientation")
-    res$type <- type_can
-    res$tfbs <- sapply(res$Target_ID,function(x) strsplit(x,"_")[[1]][1])
-
-    #parse dreme xml output
-    xml_out <- xmlParse(paste0(meme_out_fold,"/",type_can,"/tomtom/tomtom.xml"))
-    rootnode <- xmlRoot(xml_out)
-    motifs <- xmlChildren(rootnode[["targets"]])
-    tab_names <- do.call(rbind,
-                        lapply(as.list(motifs),
-                               function(x) {
-                                 c(as.character(xmlAttrs(x)["id"]),as.character(xmlAttrs(x)["alt"]))
-                               }
-                        )
-    )
-    matches <- match(res$Target_ID,tab_names[,1])
-    res$tfbs2 <- tab_names[matches,2]
-    Sys.sleep(1)
+                      comment.char = "#"), error= function(e){
+                        message("No motifs for ", type_can)
+                      })
+    if (!is.null(res)){
+        colnames(res) <- c("Query_ID",	"Target_ID"	,"Optimal_offset",	"p.value"	,
+                           "E.value",	"q.value",	"Overlap"	,"Query_consensus"	,
+                           "Target_consensus",	"Orientation")
+        res$type <- type_can
+        res$tfbs <- sapply(res$Target_ID,function(x) strsplit(x,"_")[[1]][1])
+    
+        #parse dreme xml output
+        xml_out <- xmlParse(paste0(meme_out_fold,"/",type_can,"/tomtom/tomtom.xml"))
+        rootnode <- xmlRoot(xml_out)
+        motifs <- xmlChildren(rootnode[["targets"]])
+        tab_names <- do.call(rbind,
+                            lapply(as.list(motifs),
+                                   function(x) {
+                                     c(as.character(xmlAttrs(x)["id"]),as.character(xmlAttrs(x)["alt"]))
+                                   }
+                            )
+        )
+        matches <- match(res$Target_ID,tab_names[,1])
+        res$tfbs2 <- tab_names[matches,2]
+    #Sys.sleep(1)
+    }
     return(res)
   }
   
@@ -215,5 +224,11 @@ annotate_tfbs <- function(types,types_mot, meme_out_fold, meme_bin_path, motif_d
   print(ann_tfbs)
   ann_tfbs
   
+}
+
+
+filter_tfbs <- function(tfbs_tab, tf_pvalue_tresh, tf_evalue_tresh, tf_qvalue_thresh, tf_overlap_tresh){
+  tfbs_tab %>% dplyr::filter(p.value <= tf_pvalue_tresh, E.value <= tf_evalue_tresh, 
+                      q.value <= tf_qvalue_thresh, Overlap >= tf_overlap_tresh)
 }
 

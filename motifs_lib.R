@@ -10,11 +10,6 @@ library(methods)
 library(tibble)
 library(gtools)
 
-
-
-#change this to your dreme execution path
-dreme_path = "/home/<user>/meme/bin/dreme"
-
 hg19 = BSgenome.Hsapiens.UCSC.hg19
 
 #returns a sequence object containting hg19 sequences flanking each target site

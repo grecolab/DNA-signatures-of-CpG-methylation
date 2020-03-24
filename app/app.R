@@ -80,19 +80,49 @@ body <- dashboardBody(tabItems(
     "mot_sum",
     fluidRow(box(
       width = 12,
-      column(width = 4,
+      column(width = 2,
       actionButton(inputId = "startMEME", label = "Start motif analysis")),
-      column(width = 4,
-        numericInput(
-          inputId = "unbalance_tresh",
-          value = 0.7,
-          min = 0.01,
-          max = 0.99,
-         step = 0.1,
-          label = "Choose methylation unnbalannce threshold"
-        )
+      column(width = 2,
+             numericInput(
+               inputId = "pvalue_tresh",
+               value = 0.05,
+               min = 0.0,
+               max = 1,
+               step = 0.01,
+               label = "motif p-value threshold"
+             )
       ),
-    column(width = 4,
+      column(width = 2,
+             numericInput(
+               inputId = "evalue_tresh",
+               value = 0.05,
+               min = 0.0,
+               max = 1,
+               step = 0.01,
+               label = "motif e-value threshold"
+             )
+      ),
+      column(width = 2,
+             numericInput(
+               inputId = "unbalance_tresh",
+               value = 0.7,
+               min = 0.01,
+               max = 0.99,
+               step = 0.1,
+               label = "Methylation unnbalannce threshold"
+             )
+      ),
+      column(width = 2,
+             numericInput(
+               inputId = "fisher_thesh",
+               value = 0.05,
+               min = 0.0,
+               max = 1,
+               step = 0.01,
+               label = "Unbalance Fisher p-value threshold"
+             )
+      ),
+    column(width = 2,
       downloadButton("exportSum", label = "Export summary")
     ))),
     fluidRow(box(
@@ -114,9 +144,53 @@ body <- dashboardBody(tabItems(
   ########## tfbs summary tab ###############
   
   tabItem("tfbs_mot",
-          fluidRow(box(
-            actionButton(inputId = "startTomTom", label = "Start tfbs analysis"),
-            downloadButton("exportSumTfbs", label = "Export summary tfbs")
+          fluidRow(box(width=12,
+              column(width = 2,
+                    actionButton(inputId = "startTomTom", label = "Start tfbs analysis")
+              ),
+              column(width = 2,
+                     numericInput(
+                       inputId = "tf_pvalue_tresh",
+                       value = 0.05,
+                       min = 0.0,
+                       max = 1,
+                       step = 0.01,
+                       label = "TF p-value threshold"
+                     )
+              ),
+              column(width = 2,
+                     numericInput(
+                       inputId = "tf_evalue_tresh",
+                       value = 10,
+                       min = 0.0,
+                       max = 100,
+                       step = 1,
+                       label = "TF e-value threshold"
+                     )
+              ),
+              column(width = 2,
+                     numericInput(
+                       inputId = "tf_qvalue_thresh",
+                       value = 0.05,
+                       min = 0.0,
+                       max = 1,
+                       step = 0.01,
+                       label = "TF q-value threshold "
+                     )
+              ),
+              column(width = 2,
+                     numericInput(
+                       inputId = "tf_overlap_tresh",
+                       value = 1,
+                       min = 1,
+                       max = 1e4,
+                       step = 1,
+                       label = "TF overlap threshold"
+                     )
+              ),
+              column(width = 2,
+                     downloadButton("exportSumTfbs", label = "Export summary tfbs")
+              )
             
           )),
           fluidRow(
@@ -209,8 +283,7 @@ server <- function(input, output, session) {
     iDMCs = list()
     for (targ_name in names(targFile())) {
       iDMC = targFile()[[targ_name]]
-      iDMC <- iDMC[, c("ProbeID", "status")]
-      
+      iDMC <- iDMC[, c("ProbeID", "Status")]
       
       #get coordinates for the Cpgs of interest
       matches = match(iDMC$ProbeID, rownames(hg19_loc()))
@@ -307,10 +380,22 @@ server <- function(input, output, session) {
   
   
   meme_out_dir <- reactive({
-    assign_main_dir(types_mot = meme_out(), input$unbalance_tresh)
+    meme_out <- meme_out()
+    if(nrow(meme_out) > 0){
+      meme_out_d <- assign_main_dir(types_mot = meme_out, 
+                                    unbalance_tresh= input$unbalance_tresh, 
+                                    evalue_tresh = input$evalue_tresh,
+                                    pvalue_tresh = input$pvalue_tresh,
+                                    fisher_thesh = input$fisher_thesh)
+    } else {
+      meme_out_d <- NULL
+      showNotification("No motifs found...",duration = NULL)
+    }
+    meme_out_d
   })
   
   mot_similiarity <- reactive({
+    req(isTruthy(meme_out_dir()))
     motif_similiarity(meme_out_dir())
   })
   
@@ -318,7 +403,7 @@ server <- function(input, output, session) {
   motif_tfbs <- eventReactive(
     input$startTomTom,
     {
-      
+      req(isTruthy(meme_out_dir()))
       # Create a Progress object
       progress <- shiny::Progress$new()
       # Make sure it closes when we exit this reactive, even if there's an error
@@ -336,7 +421,13 @@ server <- function(input, output, session) {
       progress_ind = progress
     )}
   )
+
   
+  motif_tfbs_filt <- reactive({
+    filter_tfbs(motif_tfbs(), 
+                input$tf_pvalue_tresh, input$tf_evalue_tresh, 
+                input$tf_qvalue_thresh, input$tf_overlap_tresh)
+  })
   
   ############## outputs laoding #############
   output$back_sum_info <- renderText({
@@ -428,7 +519,7 @@ server <- function(input, output, session) {
   
   ############## outputs tfbs summary #############
   
-  output$motifs_summary_tfbs <- DT::renderDataTable(motif_tfbs(),
+  output$motifs_summary_tfbs <- DT::renderDataTable(motif_tfbs_filt(),
                                                     options = list(scrollX =
                                                                      TRUE))
   output$exportSumTfbs <-
@@ -436,55 +527,60 @@ server <- function(input, output, session) {
       filename = "MotifSummaryTfbs.csv",
       contentType = "csv",
       content = function(file) {
-        write.csv(motif_tfbs(), file)
+        write.csv(motif_tfbs_filt(), file)
       }
     )
   
   output$tfbsHeat <- renderPlot({
-    ann_tfbs <- motif_tfbs()
+    ann_tfbs <- motif_tfbs_filt()
+    print(ann_tfbs)
     
-    rows <- unique(ann_tfbs$tfbs2)
-    columns <- unique(ann_tfbs$type)
-    
-    #create a binary matrix where we mark the presence of the TFs in the experimnts
-    mat = matrix(
-      0,
-      nrow = length(rows),
-      ncol = length(columns),
-      dimnames = list(rows, columns)
-    )
-    for (i in 1:nrow(ann_tfbs)) {
-      if(ann_tfbs[i,]$main_dir == "neut"){
-        mat[ann_tfbs$tfbs2[i], ann_tfbs$type[i]] = 1
-      } else if(ann_tfbs[i,]$main_dir == "hypo"){
-        mat[ann_tfbs$tfbs2[i], ann_tfbs$type[i]] = 2
-      } else if(ann_tfbs[i,]$main_dir == "hyper"){
-        mat[ann_tfbs$tfbs2[i], ann_tfbs$type[i]] = 3
+    if (length(unique(ann_tfbs$tfbs2)) < 2 | length(unique(ann_tfbs$type)) <2 ) {
+      return(NULL)
+    }else{
+      
+      rows <- unique(ann_tfbs$tfbs2)
+      columns <- unique(ann_tfbs$type)
+      
+      #create a binary matrix where we mark the presence of the TFs in the experimnts
+      mat = matrix(
+        0,
+        nrow = length(rows),
+        ncol = length(columns),
+        dimnames = list(rows, columns)
+      )
+      for (i in 1:nrow(ann_tfbs)) {
+        if(ann_tfbs[i,]$main_dir == "neut"){
+          mat[ann_tfbs$tfbs2[i], ann_tfbs$type[i]] = 1
+        } else if(ann_tfbs[i,]$main_dir == "hypo"){
+          mat[ann_tfbs$tfbs2[i], ann_tfbs$type[i]] = 2
+        } else if(ann_tfbs[i,]$main_dir == "hyper"){
+          mat[ann_tfbs$tfbs2[i], ann_tfbs$type[i]] = 3
+        }
       }
+      
+      heatmap.2(
+        t(mat),
+        Colv = T,
+        Rowv = T,
+        dendrogram = "both",
+        density.info = "none",
+        trace = "none",
+        colsep = 0:nrow(mat) ,
+        sepwidth = c(0.001, 0.001),
+        rowsep = 0:ncol(mat),
+        sepcolor = "black",
+        col = c("white", "gray", "green","red"),
+        cexCol = 0.9,
+        cexRow = 0.9,
+        srtCol = 45,
+        key = F
+      )
+      legend("topleft",     
+             legend = c("not sig","neutral","hypo","hyper"),
+             fill = c("white", "gray", "green","red")
+      )
     }
-    
-    heatmap.2(
-      t(mat),
-      Colv = T,
-      Rowv = T,
-      dendrogram = "both",
-      density.info = "none",
-      trace = "none",
-      colsep = 0:nrow(mat) ,
-      sepwidth = c(0.001, 0.001),
-      rowsep = 0:ncol(mat),
-      sepcolor = "black",
-      col = c("white", "gray", "green","red"),
-      cexCol = 0.9,
-      cexRow = 0.9,
-      srtCol = 45,
-      key = F
-    )
-    
-    legend("topleft",     
-           legend = c("not sig","neutral","hypo","hyper"),
-           fill = c("white", "gray", "green","red")
-    )
   })
   
 }
