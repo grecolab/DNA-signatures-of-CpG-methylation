@@ -167,7 +167,7 @@ motif_similiarity <- function(types_mot) {
 annotate_tfbs <- function(types,types_mot, meme_out_fold, meme_bin_path, motif_dbs, tf_db,progress_ind = NULL) {
   
   #setup parallel backend to use 8 processors
-  #if you don't wanto to run the analisys on multiple cores comment the following twolines
+  #if you don't want to to run the analisys on multiple cores comment the following twolines
   # cl<-makeCluster(8)
   # registerDoParallel(cl)
   
