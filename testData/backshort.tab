@@ -1,4 +1,4 @@
-chr   pos  strand  ProbeID
+chr	pos	strand	ProbeID
 chr4	39368611	-	cg16910047
 chr14	106146365	-	cg10281502
 chr10	70749155	+	cg15451409

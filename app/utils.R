@@ -184,7 +184,7 @@ annotate_tfbs <- function(types,types_mot, meme_out_fold, meme_bin_path, motif_d
     system(tomtom_comm)
     
     #res <- read.table(paste0(meme_out_fold,"/",type_can,"/tomtom/tomtom.tsv"),
-    res <- tryCatch(read.table(paste0(meme_out_fold,"/",type_can,"/tomtom/tomtom.txt"),
+    res <- tryCatch(read.table(paste0(meme_out_fold,"/",type_can,"/tomtom/tomtom.tsv"),
                       stringsAsFactors = F,
                       comment.char = "#"), error= function(e){
                         message("No motifs for ", type_can)

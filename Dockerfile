@@ -24,9 +24,11 @@ RUN R -e "install.packages(c('curl','RCurl','shiny', 'shinyjs', 'shinydashboard'
                               'dendextend', 'foreach', 'doParallel', 'XML', 'BiocManager'), repos='https://cloud.r-project.org/')"
 
 # install bioconductor packages
-RUN R -e "BiocManager::install(c('minfi','BSgenome.Hsapiens.UCSC.hg19','IlluminaHumanMethylation450kanno.ilmn12.hg19', 'IlluminaHumanMethylationEPICanno.ilm10b2.hg19', 'Biostrings'), version = '3.8')"
+# RUN R -e "BiocManager::install(c('minfi','BSgenome.Hsapiens.UCSC.hg19','IlluminaHumanMethylation450kanno.ilmn12.hg19', 'IlluminaHumanMethylationEPICanno.ilm10b2.hg19', 'Biostrings'), version = '3.8')"
 
-# install perl libraries needed by meme
+RUN R -e "BiocManager::install(c('minfi','BSgenome.Hsapiens.UCSC.hg19','IlluminaHumanMethylation450kanno.ilmn12.hg19', 'IlluminaHumanMethylationEPICanno.ilm10b2.hg19', 'Biostrings'))"
+
+# install perl libraries (needed by meme)
 RUN cpan File::Which HTML::PullParser HTML::Template HTML::TreeBuilder JSON XML::Simple XML::Parser::Expat
 
 # install meme suite
