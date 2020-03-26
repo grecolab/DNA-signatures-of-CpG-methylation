@@ -31,7 +31,7 @@ sidebar <- dashboardSidebar(sidebarMenu(
            tabName = "mot_sum",
            icon = icon("th")),
   menuItem(
-    "Tfbfs motif Analysis",
+    "TFBS Motif Analysis",
     tabName = "tfbs_mot",
     icon = icon("bar-chart-o")
   )
@@ -59,7 +59,7 @@ body <- dashboardBody(tabItems(
     fluidRow(box(
       fileInput(
         inputId = "targetFiles",
-        label = "Upload targetFiles files",
+        label = "Upload target CpG files",
         multiple = T
       )
     ),
@@ -109,7 +109,7 @@ body <- dashboardBody(tabItems(
                min = 0.01,
                max = 0.99,
                step = 0.1,
-               label = "Methylation unnbalannce threshold"
+               label = "Methylation unbalance threshold"
              )
       ),
       column(width = 2,
@@ -146,7 +146,7 @@ body <- dashboardBody(tabItems(
   tabItem("tfbs_mot",
           fluidRow(box(width=12,
               column(width = 2,
-                    actionButton(inputId = "startTomTom", label = "Start tfbs analysis")
+                    actionButton(inputId = "startTomTom", label = "Start TFBS analysis")
               ),
               column(width = 2,
                      numericInput(
@@ -189,7 +189,7 @@ body <- dashboardBody(tabItems(
                      )
               ),
               column(width = 2,
-                     downloadButton("exportSumTfbs", label = "Export summary tfbs")
+                     downloadButton("exportSumTfbs", label = "Export summary TFBS")
               )
             
           )),
@@ -202,7 +202,7 @@ body <- dashboardBody(tabItems(
           fluidRow(
             box(
               width = 12,
-              title = "Tfbs Presence",
+              title = "TFBS Presence",
               column(width = 12, plotOutput(outputId = "tfbsHeat"))
             )
           ))
@@ -409,7 +409,7 @@ server <- function(input, output, session) {
       # Make sure it closes when we exit this reactive, even if there's an error
       on.exit(progress$close())
       
-      progress$set(message = "Motif tfbs search", value = 0)
+      progress$set(message = "Motif TFBS search", value = 0)
       
       annotate_tfbs(
       types = names(iDMCs()),
@@ -524,7 +524,7 @@ server <- function(input, output, session) {
                                                                      TRUE))
   output$exportSumTfbs <-
     downloadHandler(
-      filename = "MotifSummaryTfbs.csv",
+      filename = "MotifSummaryTFBS.csv",
       contentType = "csv",
       content = function(file) {
         write.csv(motif_tfbs_filt(), file)
